@@ -1,5 +1,6 @@
 #!/bin/sh
-
+#removing the module from the kernel
+#removing the device node
 module="chardev"
 device="chardev"
 

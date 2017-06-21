@@ -1,4 +1,6 @@
 #!/bin/bash
+#automatic installation of the kernel module and the Device-Nodes 
+#and optional setting of predefined values
 
 bash remove.sh
 

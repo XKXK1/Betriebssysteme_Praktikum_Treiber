@@ -1,7 +1,9 @@
 DEBFLAGS = -O2
+#variables that can be passed through to the Module
 RET_VAL_NUMBER = -1
 RET_VAL_TIME = -1
 
+#to pass through the variables to the Module
 ccflags-y := -DDEF_RET_VAL_TIME=$(RET_VAL_TIME) -DDEF_RET_VAL_NUMBER=$(RET_VAL_NUMBER)
 
 EXTRA_CFLAGS = $(DEBFLAGS) 
