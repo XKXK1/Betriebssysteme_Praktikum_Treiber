@@ -2,9 +2,9 @@
 
 struct mutex myMutex;
 static int chardev_major; //Major Number which is the Device Number
-static int momentane_zeile_zeichen_anzahl; 
+static int anzZeichen; 
 static u64 zeit_stempel;
-static int zeit_seit_letzte_gelessene_zeile;
+static int passedTime;
 static struct cdev my_cdev; // the kernel uses structures of type struct cdev to represent char devices internally
 static int open = 0;
 static int writeTrue = 0;
@@ -55,10 +55,10 @@ loff_t *f_offset//file offset
 	}
 	// if something got already written return the real values of length and time since last message
 	if (writeTrue == 1){
-	  sprintf(ausgabe_buffer,"Eingegebene Zeichen: %i  Vergangene Zeit: %u\n",momentane_zeile_zeichen_anzahl,zeit_seit_letzte_gelessene_zeile);
+	  sprintf(ausgabe_buffer,"Char Count: %i  Passed Time: %u\n",anzZeichen,passedTime);
 	// if something is written for the first time return predefined values for length and time since last message
 	} else {
-	  sprintf(ausgabe_buffer,"Eingegebene Zeichen: %i  Vergangene Zeit: %i\n",ret_val_number,ret_val_time);
+	  sprintf(ausgabe_buffer,"Char Count: %i  Passed Time: %i\n",ret_val_number,ret_val_time);
 	  }
 	
 	
@@ -68,13 +68,13 @@ loff_t *f_offset//file offset
 	
 	//copy to user checks whether the memory is accessible
 	if(copy_to_user(buffer,ausgabe_buffer,ubergeben)){
-		PDEBUG("Chardev: Daten wurden nicht gesendet");
+		PDEBUG("Chardev: No data end");
 	}
 	else{
-		PDEBUG("Chardev: Daten wurden gesendet");
+		PDEBUG("Chardev: data send: OK");
 	}
 	
-	PDEBUG("Chardev: Data mit der lange %d wird gelesen\n", ubergeben);
+	PDEBUG("Chardev: Input length %d read\n", ubergeben);
 	
 	// returning possible offset
 	*f_offset = ubergeben;
@@ -90,8 +90,8 @@ ssize_t chardev_write(struct file *filp,const char *buffer,size_t buffer_length,
 	
 	u64 temp = 0; // temporary time measuring variable
 	mutex_lock(&myMutex);// locking mutex to prevent "read" from accessing at the same time
-	momentane_zeile_zeichen_anzahl = buffer_length-1; // length of the message
-	PDEBUG("Chardev: Data mit der lange %d und wert %s wird gelessen\n", buffer_length,buffer);
+	anzZeichen = buffer_length-1; // length of the message
+	PDEBUG("Chardev: Input length %d char %s read: OK\n", buffer_length,buffer);
 	
 	temp = (u64)get_jiffies_64(); //getting the first timestamp
 	
@@ -101,11 +101,11 @@ ssize_t chardev_write(struct file *filp,const char *buffer,size_t buffer_length,
 	}
 	
 	//calculating time since last message
-	zeit_seit_letzte_gelessene_zeile = temp - zeit_stempel;
-	zeit_seit_letzte_gelessene_zeile = zeit_seit_letzte_gelessene_zeile * 1000 / HZ;
+	passedTime = temp - zeit_stempel;
+	passedTime = passedTime * 1000 / HZ;
 	zeit_stempel = temp;
 	
-	PDEBUG("Chardev: Schreiben ist fertig\n");
+	PDEBUG("Chardev: Write: OK\n");
 	mutex_unlock(&myMutex);
 	writeTrue = 1; // now a message has already been written
 	return buffer_length;
@@ -114,6 +114,7 @@ ssize_t chardev_write(struct file *filp,const char *buffer,size_t buffer_length,
 /*
 Linking the file operations which are going to be implemented
 */
+
 struct file_operations fops = {
        .read = chardev_read,
        .write = chardev_write,
@@ -133,7 +134,7 @@ static int chardev_init(void){
 	
 	mutex_init(&myMutex); 
 	
-	PDEBUG("Chardev: Modul initialisation wurde gestartet\n");
+	PDEBUG("Chardev: Initialisation started\n");
 	
 	//dynamic allocation of major numbers to easily pick a number which is not already used
 	result = alloc_chrdev_region(&dev,MINOR_START,DEVICE_COUNT,"chardev"); 
@@ -146,8 +147,8 @@ static int chardev_init(void){
 	chardev_major = MAJOR(dev); // assigning the major number to the variable
 	
 	// Variables which are used for the funcionality of the Module
-	momentane_zeile_zeichen_anzahl = 0;
-	zeit_seit_letzte_gelessene_zeile = 0;
+	anzZeichen = 0;
+	passedTime = 0;
 	
 	//registration of a char device which is linked to the implemented file operations
 	cdev_init(&my_cdev, &fops); 
@@ -159,7 +160,7 @@ static int chardev_init(void){
 	    return result;
 	  }
 	
-	PDEBUG("Chardev: Modul wurde mit der major numer %i gestartert\n",chardev_major);
+	PDEBUG("Chardev: Modul startet: Mayor number: %i\n",chardev_major);
 	return 0;
 }
 
@@ -173,7 +174,7 @@ static void chardev_exit(void){
 	
 	//This function will unregister a range of count device numbers, starting with devno.
 	unregister_chrdev_region(devno,DEVICE_COUNT); // 
-	PDEBUG("Chardev: Modul wurde aufgereumt\n");
+	PDEBUG("Chardev: Modul cleared\n");
 }
 
 // module init and exit calls

@@ -21,4 +21,4 @@ sleep 3.8
 echo "John Cena is not alive" > $destination
 cat < $destination
 
-#dmesg | grep Chardev
+dmesg | grep Chardev | tail --lines=56

@@ -7,7 +7,7 @@ device="chardev"
 mode=666
 
 #remove device-node
-sudo rm /dev/$device
+sudo rm -f /dev/$device
 
 #applying the module to the kernel
 sudo /sbin/insmod ./$module.ko $* || exit 1
